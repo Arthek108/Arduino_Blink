@@ -1,0 +1,285 @@
+#include <digitalWriteFast.h>
+#include <SchedulerARMAVR.h>
+
+// DECLARATION DES VARIABLES //
+
+const int led_grp1   = 13;
+const int led_grp2   = 7;
+const int led_grp3   = 2;
+const int led_grp4   = 4;
+
+const float rapport_cyclique = 0.5;
+
+bool SEQUENCE_ACTIVE_1 = 1;
+bool SEQUENCE_ACTIVE_2 = 1;
+bool SEQUENCE_ACTIVE_3 = 1;
+bool SEQUENCE_ACTIVE_4 = 1;
+
+const int LIGNES_sequence =  3; 
+const int COLONNES_sequence = 7;
+
+// DECLARATION DES TABLEAUX DE SEQUENCE //
+
+// LED CENTRALE
+float TAB_sequence_grpled1[LIGNES_sequence][COLONNES_sequence] = { 
+  {1,     4,     4,       4,      3,      7,      3},     // FREQUENCE (Hz)
+  {60,    60,     30,     60,     11,     10,     9},   // DUREE (secondes)
+  {0,     120,     11,     12,     13,     14,     15},   // DUREE TRANSITION (secondes)
+};
+
+// GROUPE DE LED 2
+float TAB_sequence_grpled2[LIGNES_sequence][COLONNES_sequence] = { 
+  {15,    12,     8,      6,      4,      3,      3},     // FREQUENCE (Hz)
+  {15,    10,     10,     8,      11,     10,     9},   // DUREE (secondes)
+  {0,     10,     11,     12,     13,     14,     15},   // DUREE TRANSITION (secondes)  
+};
+
+// GROUPE DE LED 3
+float TAB_sequence_grpled3[LIGNES_sequence][COLONNES_sequence] = { 
+  {15,    12,     8,      6,      4,      3,      3},     // FREQUENCE (Hz)
+  {15,    10,     10,     8,      11,     10,     9},   // DUREE (secondes)
+  {0,     10,     11,     12,     13,     14,     15},   // DUREE TRANSITION (secondes)  
+};
+
+// GROUPE DE LED 4
+float TAB_sequence_grpled4[LIGNES_sequence][COLONNES_sequence] = { 
+  {15,    10,     4,      4,      6,      7,      3},     // FREQUENCE (Hz)
+  {15,    10,     10,     8,      11,     10,     9},   // DUREE (secondes)
+  {0,     10,     11,     12,     13,     14,     15},   // DUREE TRANSITION (secondes)
+};
+
+
+// FONCTION BLINK
+float TIME_LED_ON, TIME_LED_OFF, TIME_LED;
+int temps_encours;
+
+void function_blink(int ref_led, float freq, int temps, float RC)
+{ // ON FAIT BLINKER LA LED "ref_led" A LA FREQUENCE "freq" PENDANT "temps" AVEC UN RAPPORT CYCLIQUE "RC" 
+    temps_encours = 0; // RESET 
+    
+    TIME_LED = (1/freq)*1000;
+    TIME_LED_ON = TIME_LED*RC;
+    TIME_LED_OFF = TIME_LED*(1-RC);
+
+  while (temps_encours < temps*1000 ) 
+  {
+    digitalWriteFast(ref_led, HIGH);
+    delay(round(TIME_LED_ON));
+    
+    digitalWriteFast(ref_led, LOW);
+    delay(round(TIME_LED_OFF));
+
+    temps_encours = temps_encours + TIME_LED;
+  }
+  
+}
+
+void setup() 
+{
+  Serial.begin(9600);
+  pinModeFast(led_grp1, OUTPUT);
+  pinModeFast(led_grp2, OUTPUT);
+  pinModeFast(led_grp3, OUTPUT);
+  pinModeFast(led_grp4, OUTPUT);  
+
+  Scheduler.startLoop(loop_GRPLED2);
+  Scheduler.startLoop(loop_GRPLED3);
+  Scheduler.startLoop(loop_GRPLED4);
+}
+
+void loop() // BOUCLE POUR LED CENTRALE
+{
+  float freq;
+  float freq_cible;
+  float duree;
+  float pas_freq;
+  
+  float difference_freq;
+  float duree_transition; // en secondes
+  
+  while (SEQUENCE_ACTIVE_1)
+  {
+    freq = TAB_sequence_grpled1[0][0];
+    
+    for (int i = 0; i < (COLONNES_sequence); i++)
+      {
+        freq_cible = TAB_sequence_grpled1[0][i];
+        duree = TAB_sequence_grpled1[1][i];
+        duree_transition = TAB_sequence_grpled1[2][i];
+           
+        // TRANSITION DOUCE VERS NOUVELLE SEQUENCE
+        difference_freq = freq_cible - freq;
+
+        if (duree_transition != 0 && difference_freq != 0) 
+        {
+        pas_freq = difference_freq / duree_transition ; // PAS EN FREQUENCE POUR 1 SECONDE D'INTERVALLE
+
+        float MIN_freq = min(freq_cible, freq);
+        float MAX_freq = max(freq_cible, freq);
+    
+        while ( constrain(freq, MIN_freq, MAX_freq) == freq ) 
+          {
+              freq = freq + pas_freq ;
+              function_blink(led_grp1, freq, 1, rapport_cyclique); // pour 1 seconde d'intervalle
+          }
+        } 
+        
+        freq = freq_cible ; 
+         
+      // DEBUT DE LA SEQUENCE
+      function_blink(led_grp1, freq, duree, rapport_cyclique); 
+    }
+    
+    SEQUENCE_ACTIVE_1 = 0; // POUR STOPPER LA SEQUENCE
+    
+  }
+  
+}
+
+void loop_GRPLED2() // BOUCLE POUR GROUPE LED 2
+{
+  float freq;
+  float freq_cible;
+  float duree;
+  float pas_freq;
+  
+  float difference_freq;
+  float duree_transition; // en secondes
+  
+  while (SEQUENCE_ACTIVE_2)
+  {
+    freq = TAB_sequence_grpled2[0][0];
+    
+    for (int i = 0; i < (COLONNES_sequence); i++)
+      {
+        freq_cible = TAB_sequence_grpled2[0][i];
+        duree = TAB_sequence_grpled2[1][i];
+        duree_transition = TAB_sequence_grpled2[2][i];
+           
+        // TRANSITION DOUCE VERS NOUVELLE SEQUENCE
+        difference_freq = freq_cible - freq;
+
+        if (duree_transition != 0 && difference_freq != 0) 
+        {
+        pas_freq = difference_freq / duree_transition ; // PAS EN FREQUENCE POUR 1 SECONDE D'INTERVALLE
+
+        float MIN_freq = min(freq_cible, freq);
+        float MAX_freq = max(freq_cible, freq);
+    
+        while ( constrain(freq, MIN_freq, MAX_freq) == freq ) 
+          {
+              freq = freq + pas_freq ;
+              function_blink(led_grp2, freq, 1, rapport_cyclique); // pour 1 seconde d'intervalle
+          }
+        } 
+        
+        freq = freq_cible ; 
+         
+      // DEBUT DE LA SEQUENCE
+      function_blink(led_grp2, freq, duree, rapport_cyclique); 
+    }
+    
+    SEQUENCE_ACTIVE_2 = 0; // POUR STOPPER LA SEQUENCE
+    
+  }
+  
+}
+
+void loop_GRPLED3() // BOUCLE POUR GROUPE LED 3
+{
+  float freq;
+  float freq_cible;
+  float duree;
+  float pas_freq;
+  
+  float difference_freq;
+  float duree_transition; // en secondes
+  
+  while (SEQUENCE_ACTIVE_3)
+  {
+    freq = TAB_sequence_grpled3[0][0];
+    
+    for (int i = 0; i < (COLONNES_sequence); i++)
+      {
+        freq_cible = TAB_sequence_grpled3[0][i];
+        duree = TAB_sequence_grpled3[1][i];
+        duree_transition = TAB_sequence_grpled3[2][i];
+           
+        // TRANSITION DOUCE VERS NOUVELLE SEQUENCE
+        difference_freq = freq_cible - freq;
+
+        if (duree_transition != 0 && difference_freq != 0) 
+        {
+        pas_freq = difference_freq / duree_transition ; // PAS EN FREQUENCE POUR 1 SECONDE D'INTERVALLE
+
+        float MIN_freq = min(freq_cible, freq);
+        float MAX_freq = max(freq_cible, freq);
+    
+        while ( constrain(freq, MIN_freq, MAX_freq) == freq ) 
+          {
+              freq = freq + pas_freq ;
+              function_blink(led_grp3, freq, 1, rapport_cyclique); // pour 1 seconde d'intervalle
+          }
+        } 
+        
+        freq = freq_cible ; 
+         
+      // DEBUT DE LA SEQUENCE
+      function_blink(led_grp3, freq, duree, rapport_cyclique); 
+    }
+    
+    SEQUENCE_ACTIVE_3 = 0; // POUR STOPPER LA SEQUENCE
+    
+  }
+  
+}
+
+void loop_GRPLED4() // BOUCLE POUR GROUPE LED 4
+{
+  float freq;
+  float freq_cible;
+  float duree;
+  float pas_freq;
+  
+  float difference_freq;
+  float duree_transition; // en secondes
+  
+  while (SEQUENCE_ACTIVE_4)
+  {
+    freq = TAB_sequence_grpled4[0][0];
+    
+    for (int i = 0; i < (COLONNES_sequence); i++)
+      {
+        freq_cible = TAB_sequence_grpled4[0][i];
+        duree = TAB_sequence_grpled4[1][i];
+        duree_transition = TAB_sequence_grpled4[2][i];
+           
+        // TRANSITION DOUCE VERS NOUVELLE SEQUENCE
+        difference_freq = freq_cible - freq;
+
+        if (duree_transition != 0 && difference_freq != 0) 
+        {
+        pas_freq = difference_freq / duree_transition ; // PAS EN FREQUENCE POUR 1 SECONDE D'INTERVALLE
+
+        float MIN_freq = min(freq_cible, freq);
+        float MAX_freq = max(freq_cible, freq);
+    
+        while ( constrain(freq, MIN_freq, MAX_freq) == freq ) 
+          {
+              freq = freq + pas_freq ;
+              function_blink(led_grp4, freq, 1, rapport_cyclique); // pour 1 seconde d'intervalle
+          }
+        } 
+        
+        freq = freq_cible ; 
+         
+      // DEBUT DE LA SEQUENCE
+      function_blink(led_grp4, freq, duree, rapport_cyclique); 
+    }
+    
+    SEQUENCE_ACTIVE_4 = 0; // POUR STOPPER LA SEQUENCE
+    
+  }
+  
+}
+
